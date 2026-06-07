@@ -1,5 +1,5 @@
 {
   "installCommand": "pnpm install",
-  "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/mockup-sandbox run build",
-  "outputDirectory": "artifacts/mockup-sandbox/dist"
+  "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/equilibre-coaching exec vite build",
+  "outputDirectory": "artifacts/equilibre-coaching/dist"
 }
