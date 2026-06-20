@@ -1,7 +1,0 @@
-packages:
-  - artifacts/equilibre-coaching
-
-allowBuilds:
-  esbuild: true
-
-autoInstallPeers: false
