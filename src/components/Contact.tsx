@@ -20,21 +20,70 @@ const contactSchema = z.object({
   name: z.string().min(2, "Veuillez indiquer votre nom complet."),
   email: z.string().email("Adresse e-mail invalide."),
   phone: z.string().optional(),
-  message: z.string().min(10, "Votre message doit contenir au moins 10 caractères."),
+  website: z.string().optional(),
+  message: z
+    .string()
+    .min(10, "Votre message doit contenir au moins 10 caractères.")
+    .max(2000, "Votre message doit contenir moins de 2000 caractères."),
 });
 
 type ContactValues = z.infer<typeof contactSchema>;
 
+const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT as
+  | string
+  | undefined;
+
 export function Contact() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const form = useForm<ContactValues>({
     resolver: zodResolver(contactSchema),
-    defaultValues: { name: "", email: "", phone: "", message: "" },
+    defaultValues: { name: "", email: "", phone: "", website: "", message: "" },
   });
 
-  function onSubmit(_values: ContactValues) {
-    setSubmitted(true);
+  async function onSubmit(values: ContactValues) {
+    setSubmitError(null);
+
+    try {
+      if (!FORMSPREE_ENDPOINT) {
+        throw new Error("Le formulaire de contact n'est pas configuré.");
+      }
+
+      const response = await fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(values),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const formspreeError = Array.isArray(result?.errors)
+          ? result.errors
+              .map((item: { message?: string }) => item.message)
+              .filter(Boolean)
+              .join(" ")
+          : null;
+
+        throw new Error(
+          formspreeError ||
+            result?.error ||
+            "Une erreur est survenue pendant l'envoi du message."
+        );
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue pendant l'envoi du message."
+      );
+    }
   }
 
   return (
@@ -90,6 +139,15 @@ export function Contact() {
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-6"
                 >
+                  <input
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    className="hidden"
+                    aria-hidden="true"
+                    {...form.register("website")}
+                  />
+
                   <div className="grid sm:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -169,13 +227,23 @@ export function Contact() {
                     )}
                   />
 
+                  {submitError ? (
+                    <p
+                      role="alert"
+                      className="text-sm font-medium text-destructive"
+                    >
+                      {submitError}
+                    </p>
+                  ) : null}
+
                   <Button
                     data-testid="button-submit"
                     type="submit"
                     size="lg"
                     className="w-full rounded-full text-base py-6"
+                    disabled={form.formState.isSubmitting}
                   >
-                    Envoyer
+                    {form.formState.isSubmitting ? "Envoi en cours..." : "Envoyer"}
                   </Button>
                 </form>
               </Form>
