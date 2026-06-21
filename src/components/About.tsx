@@ -16,24 +16,24 @@ export function About() {
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid md:grid-cols-2 gap-12 md:gap-24 items-center">
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.7 }}
           >
             <div className="relative">
-              <div className="absolute -inset-4 bg-secondary/20 rounded-[2rem] -z-10 transform -rotate-3"></div>
+              <div className="absolute -inset-4 bg-secondary/20 rounded-2xl -z-10 transform -rotate-2"></div>
               <img
                 src={aboutImg}
                 alt="Coach portrait"
-                className="rounded-[2rem] shadow-xl w-full object-cover aspect-[3/4]"
+                className="rounded-2xl shadow-xl w-full object-cover aspect-[3/4]"
               />
             </div>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.7 }}
           >

@@ -113,7 +113,7 @@
   --app-font-sans: 'Inter', sans-serif;
   --app-font-serif: 'Playfair Display', serif;
   --app-font-mono: Menlo, monospace;
-  --radius: 2rem; /* Soft rounded corners */
+  --radius: 1.25rem; /* Soft rounded corners */
   
   --shadow-2xs: 0px 2px 0px 0px hsl(40 5% 19% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(40 5% 19% / 0.00);

@@ -49,3 +49,6 @@ Thumbs.db
 .local/
 .vercel
 .env*
+coach-site-key.json
+coach-site-key.json
+*.json

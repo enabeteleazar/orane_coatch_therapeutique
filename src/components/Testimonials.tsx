@@ -62,7 +62,7 @@ export function Testimonials() {
             <motion.div
               key={idx}
               variants={itemVariants}
-              className="flex flex-col bg-card border border-border/50 rounded-[1.5rem] p-8 shadow-sm hover:shadow-md transition-shadow duration-300"
+              className="flex flex-col rounded-2xl border border-border/50 bg-card p-8 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex gap-1 mb-6">
                 {Array.from({ length: t.stars }).map((_, i) => (

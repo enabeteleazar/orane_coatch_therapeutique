@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle, X } from "lucide-react";
 import {
   Form,
@@ -38,16 +38,11 @@ const WHATSAPP_PHONE = import.meta.env.VITE_WHATSAPP_PHONE as
 const WHATSAPP_PHONE_NUMBER = WHATSAPP_PHONE?.replace(/\D/g, "");
 
 type ContactProps = {
-  isBookingModalOpen: boolean;
   onOpenBookingModal: () => void;
-  onCloseBookingModal: () => void;
 };
 
-export function Contact({
-  isBookingModalOpen,
-  onOpenBookingModal,
-  onCloseBookingModal,
-}: ContactProps) {
+export function Contact({ onOpenBookingModal }: ContactProps) {
+  const [isMailModalOpen, setIsMailModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
@@ -115,19 +110,19 @@ export function Contact({
   }
 
   useEffect(() => {
-    if (!isBookingModalOpen) {
+    if (!isMailModalOpen) {
       return;
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onCloseBookingModal();
+        setIsMailModalOpen(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isBookingModalOpen, onCloseBookingModal]);
+  }, [isMailModalOpen]);
 
   return (
     <section id="contact" className="py-24 md:py-32 bg-primary/5">
@@ -153,7 +148,16 @@ export function Contact({
               <Button
                 type="button"
                 size="lg"
-                className="min-w-40 rounded-full px-6 transition-transform hover:scale-105"
+                className="min-w-40 rounded-full px-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                onClick={onOpenBookingModal}
+              >
+                Réserver une séance
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="min-w-40 rounded-full px-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
                 onClick={handleWhatsappClick}
               >
                 Via WhatsApp
@@ -162,8 +166,8 @@ export function Contact({
                 type="button"
                 variant="outline"
                 size="lg"
-                className="min-w-40 rounded-full px-6 transition-transform hover:scale-105"
-                onClick={onOpenBookingModal}
+                className="min-w-40 rounded-full px-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                onClick={() => setIsMailModalOpen(true)}
               >
                 Via mail
               </Button>
@@ -178,26 +182,35 @@ export function Contact({
             ) : null}
           </motion.div>
 
-          {isBookingModalOpen ? (
-            <div
-              role="presentation"
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/40 px-4 py-6 backdrop-blur-sm"
-              onClick={onCloseBookingModal}
-            >
-              <div
-                role="dialog"
-                aria-modal="true"
-                aria-label="Formulaire de contact"
-                className="relative max-h-[calc(100dvh-3rem)] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-border/50 bg-card p-6 shadow-xl md:p-12"
-                onClick={(event) => event.stopPropagation()}
+          <AnimatePresence>
+            {isMailModalOpen ? (
+              <motion.div
+                role="presentation"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/40 px-4 py-6 backdrop-blur-sm"
+                onClick={() => setIsMailModalOpen(false)}
               >
+                <motion.div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Formulaire de contact"
+                  initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="relative max-h-[calc(100dvh-3rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border/50 bg-card p-6 shadow-xl md:p-12"
+                  onClick={(event) => event.stopPropagation()}
+                >
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   aria-label="Fermer la fenêtre de contact"
                   className="absolute right-4 top-4 rounded-full"
-                  onClick={onCloseBookingModal}
+                  onClick={() => setIsMailModalOpen(false)}
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -335,9 +348,10 @@ export function Contact({
                     </form>
                   </Form>
                 )}
-              </div>
-            </div>
-          ) : null}
+                </motion.div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
       </div>
     </section>

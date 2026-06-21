@@ -9,11 +9,11 @@ export function Footer() {
             Equilibre Coaching
           </p>
           <p className="text-sm text-foreground/55 mt-1">
-            Avancez vers une vie plus claire, plus alignee et plus sereine.
+            Avancez vers une vie plus claire, plus alignée et plus sereine.
           </p>
         </div>
         <p className="text-sm text-foreground/45">
-          &copy; {year} Equilibre Coaching. Tous droits reserves.
+          &copy; {year} Equilibre Coaching. Tous droits réservés.
         </p>
       </div>
     </footer>

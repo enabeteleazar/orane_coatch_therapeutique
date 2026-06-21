@@ -13,8 +13,8 @@ export function Pricing() {
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid md:grid-cols-2 gap-16 items-center max-w-5xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.7 }}
           >
@@ -29,18 +29,18 @@ export function Pricing() {
               </p>
             </div>
             <div className="mt-4 p-4 bg-background rounded-2xl border border-border/50">
-  <p className="text-sm text-foreground/70 text-center">
-    Pour les séances nécessitant un déplacement à domicile, un forfait de
-    <span className="font-semibold text-primary"> 10 € </span>
-    par séance est appliqué.
-  </p>
-</div>           
+              <p className="text-sm text-foreground/70 text-center">
+                Pour les séances nécessitant un déplacement à domicile, un forfait de
+                <span className="font-semibold text-primary"> 10 € </span>
+                par séance est appliqué.
+              </p>
+            </div>
  
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.7 }}
             className="space-y-4"
@@ -48,7 +48,7 @@ export function Pricing() {
             {prices.map((item, idx) => (
               <div 
                 key={idx} 
-                className="flex items-center justify-between p-6 bg-background rounded-2xl shadow-sm border border-border/50 hover:shadow-md transition-shadow"
+                className="flex items-center justify-between p-6 bg-background rounded-2xl shadow-sm border border-border/50 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"
               >
                 <div>
                   <h4 className="text-lg font-serif font-medium text-foreground">{item.title}</h4>

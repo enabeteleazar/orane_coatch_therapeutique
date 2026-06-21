@@ -7,7 +7,7 @@ export function Services() {
     {
       title: "Séance découverte",
       icon: Compass,
-      desc: "Un premier échange pour faire connaissance, comprendre vos besoins et définir si mon approche vous correspond. Gratuit, et Sans engagement."
+      desc: "Un premier échange pour faire connaissance, comprendre vos besoins et définir si mon approche vous correspond. Gratuit et sans engagement."
     },
     {
       title: "Coaching individuel",
@@ -17,7 +17,7 @@ export function Services() {
     {
       title: "Accompagnement régulier",
       icon: CalendarSync,
-      desc: "Un suivi complet sur plusieurs mois pour ancrer de nouvelles habitudes, retrouver un équilibre global et réaliser vos projets grace a deux formules de 5 ou de 10 seances."
+      desc: "Un suivi complet sur plusieurs mois pour ancrer de nouvelles habitudes, retrouver un équilibre global et réaliser vos projets grâce à deux formules de 5 ou de 10 séances."
     },
     {
       title: "Coaching à distance",
@@ -67,7 +67,7 @@ export function Services() {
             const Icon = service.icon;
             return (
               <motion.div key={idx} variants={itemVariants}>
-                <Card className="h-full border-border/50 bg-card hover:border-primary/30 hover:shadow-lg transition-all duration-300 rounded-[1.5rem]">
+                <Card className="h-full rounded-2xl border-border/50 bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg">
                   <CardHeader>
                     <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
                       <Icon className="w-6 h-6 text-primary" />
