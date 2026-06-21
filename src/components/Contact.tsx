@@ -32,18 +32,38 @@ type ContactValues = z.infer<typeof contactSchema>;
 const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT as
   | string
   | undefined;
+const WHATSAPP_PHONE = import.meta.env.VITE_WHATSAPP_PHONE as
+  | string
+  | undefined;
+const WHATSAPP_PHONE_NUMBER = WHATSAPP_PHONE?.replace(/\D/g, "");
 
 type ContactProps = {
   isBookingModalOpen: boolean;
+  onOpenBookingModal: () => void;
   onCloseBookingModal: () => void;
 };
 
 export function Contact({
   isBookingModalOpen,
+  onOpenBookingModal,
   onCloseBookingModal,
 }: ContactProps) {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
+  const whatsappUrl = WHATSAPP_PHONE_NUMBER
+    ? `https://wa.me/${WHATSAPP_PHONE_NUMBER}`
+    : "#";
+
+  function handleWhatsappClick() {
+    if (!WHATSAPP_PHONE_NUMBER) {
+      setWhatsappError("Le numéro WhatsApp n'est pas configuré.");
+      return;
+    }
+
+    setWhatsappError(null);
+    window.location.href = whatsappUrl;
+  }
 
   const form = useForm<ContactValues>({
     resolver: zodResolver(contactSchema),
@@ -129,6 +149,33 @@ export function Contact({
             <p className="text-lg text-foreground/70">
               Réservez votre séance découverte ou posez-moi simplement vos questions. Je vous répondrai sous 48h.
             </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                type="button"
+                size="lg"
+                className="min-w-40 rounded-full px-6 transition-transform hover:scale-105"
+                onClick={handleWhatsappClick}
+              >
+                Via WhatsApp
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="min-w-40 rounded-full px-6 transition-transform hover:scale-105"
+                onClick={onOpenBookingModal}
+              >
+                Via mail
+              </Button>
+            </div>
+            {whatsappError ? (
+              <p
+                role="alert"
+                className="mt-4 text-sm font-medium text-destructive"
+              >
+                {whatsappError}
+              </p>
+            ) : null}
           </motion.div>
 
           {isBookingModalOpen ? (
@@ -140,7 +187,7 @@ export function Contact({
               <div
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="contact-modal-title"
+                aria-label="Formulaire de contact"
                 className="relative max-h-[calc(100dvh-3rem)] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-border/50 bg-card p-6 shadow-xl md:p-12"
                 onClick={(event) => event.stopPropagation()}
               >
@@ -154,13 +201,6 @@ export function Contact({
                 >
                   <X className="h-5 w-5" />
                 </Button>
-
-                <h4
-                  id="contact-modal-title"
-                  className="mb-8 pr-10 text-2xl font-serif text-foreground"
-                >
-                  Réserver une séance
-                </h4>
 
                 {submitted ? (
                   <div className="flex flex-col items-center text-center py-10 gap-5">

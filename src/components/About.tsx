@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import aboutImg from "@/assets/images/about.png";
+import aboutImg from "@/assets/images/about.jpg";
 
 export function About() {
   const values = [

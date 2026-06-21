@@ -22,6 +22,7 @@ export default function Home() {
         <Testimonials />
         <Contact
           isBookingModalOpen={isBookingModalOpen}
+          onOpenBookingModal={() => setIsBookingModalOpen(true)}
           onCloseBookingModal={() => setIsBookingModalOpen(false)}
         />
       </main>

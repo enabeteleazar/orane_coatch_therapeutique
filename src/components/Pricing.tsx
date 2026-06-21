@@ -2,10 +2,10 @@ import { motion } from "framer-motion";
 
 export function Pricing() {
   const prices = [
-    { title: "Séance découverte", duration: "30 minutes", price: "25 €" },
-    { title: "Séance individuelle", duration: "1 heure", price: "60 €" },
-    { title: "Pack 5 séances", duration: "Suivi modéré", price: "275 €" },
-    { title: "Pack 10 séances", duration: "Suivi complet", price: "500 €" }
+    { title: "Séance découverte", duration: "30 minutes", price: "Offerte" },
+    { title: "Séance individuelle", duration: "1h30", price: "60 €" },
+    { title: "Pack 5 séances", duration: "Suivi modéré", price: "280 €" },
+    { title: "Pack 10 séances", duration: "Suivi complet", price: "560 €" }
   ];
 
   return (
@@ -28,6 +28,14 @@ export function Pricing() {
                 "Les tarifs peuvent être adaptés selon les besoins après échange. N'hésitez pas à m'en parler lors de notre séance découverte."
               </p>
             </div>
+            <div className="mt-4 p-4 bg-background rounded-2xl border border-border/50">
+  <p className="text-sm text-foreground/70 text-center">
+    Pour les séances nécessitant un déplacement à domicile, un forfait de
+    <span className="font-semibold text-primary"> 10 € </span>
+    par séance est appliqué.
+  </p>
+</div>           
+ 
           </motion.div>
 
           <motion.div

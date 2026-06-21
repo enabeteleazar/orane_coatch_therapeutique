@@ -7,17 +7,17 @@ export function Services() {
     {
       title: "Séance découverte",
       icon: Compass,
-      desc: "Un premier échange pour faire connaissance, comprendre vos besoins et définir si mon approche vous correspond. Sans engagement."
+      desc: "Un premier échange pour faire connaissance, comprendre vos besoins et définir si mon approche vous correspond. Gratuit, et Sans engagement."
     },
     {
       title: "Coaching individuel",
       icon: User,
-      desc: "Une séance sur mesure d'une heure pour travailler sur une problématique précise, lever un blocage ou préparer une étape importante."
+      desc: "Une séance sur mesure d'une heure et demi pour travailler sur une problématique précise, lever un blocage ou préparer une étape importante."
     },
     {
       title: "Accompagnement régulier",
       icon: CalendarSync,
-      desc: "Un suivi complet sur plusieurs mois pour ancrer de nouvelles habitudes, retrouver un équilibre global et réaliser vos projets de vie."
+      desc: "Un suivi complet sur plusieurs mois pour ancrer de nouvelles habitudes, retrouver un équilibre global et réaliser vos projets grace a deux formules de 5 ou de 10 seances."
     },
     {
       title: "Coaching à distance",

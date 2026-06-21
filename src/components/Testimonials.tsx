@@ -4,21 +4,18 @@ import { Star } from "lucide-react";
 const testimonials = [
   {
     name: "Sophie M.",
-    role: "Responsable RH, Lyon",
     quote:
       "En quelques séances, j'ai retrouvé une clarté que je n'avais plus depuis des années. L'accompagnement est doux, bienveillant et terriblement efficace. Je recommande sans hésiter.",
-    stars: 5,
+    stars: 4,
   },
   {
     name: "Thomas R.",
-    role: "Entrepreneur, Paris",
     quote:
       "J'étais sceptique au départ, mais le coaching m'a permis de prendre du recul sur mes blocages professionnels et personnels. J'ai retrouvé confiance en moi et en mes décisions.",
     stars: 5,
   },
   {
     name: "Camille D.",
-    role: "Enseignante, Bordeaux",
     quote:
       "Un espace d'écoute rare et précieux. Chaque séance m'a aidée à avancer à mon rythme, sans jugement. Je suis ressortie de cette expérience plus sereine et plus alignée avec mes valeurs.",
     stars: 5,
@@ -80,7 +77,6 @@ export function Testimonials() {
               </blockquote>
               <div>
                 <p className="font-semibold text-foreground font-serif">{t.name}</p>
-                <p className="text-sm text-foreground/55 mt-0.5">{t.role}</p>
               </div>
             </motion.div>
           ))}
