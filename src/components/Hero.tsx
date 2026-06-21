@@ -45,13 +45,6 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
           >
-            <Button 
-              size="lg" 
-              onClick={scrollToContact}
-              className="rounded-full px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-            >
-              Réserver une séance
-            </Button>
           </motion.div>
         </div>
       </div>

@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
-export function Navbar() {
+type NavbarProps = {
+  onOpenBookingModal: () => void;
+};
+
+export function Navbar({ onOpenBookingModal }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -53,7 +57,7 @@ export function Navbar() {
           </nav>
 
           <Button
-            onClick={() => scrollToSection("contact")}
+            onClick={onOpenBookingModal}
             className="rounded-full px-6 transition-transform hover:scale-105"
           >
             Réserver une séance
