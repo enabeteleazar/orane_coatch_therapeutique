@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, X } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -33,7 +33,15 @@ const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT as
   | string
   | undefined;
 
-export function Contact() {
+type ContactProps = {
+  isBookingModalOpen: boolean;
+  onCloseBookingModal: () => void;
+};
+
+export function Contact({
+  isBookingModalOpen,
+  onCloseBookingModal,
+}: ContactProps) {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -86,6 +94,21 @@ export function Contact() {
     }
   }
 
+  useEffect(() => {
+    if (!isBookingModalOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onCloseBookingModal();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isBookingModalOpen, onCloseBookingModal]);
+
   return (
     <section id="contact" className="py-24 md:py-32 bg-primary/5">
       <div className="container mx-auto px-4 md:px-6">
@@ -108,147 +131,173 @@ export function Contact() {
             </p>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-            className="bg-card border border-border/50 rounded-[1.5rem] p-8 md:p-12 shadow-sm"
-          >
-            {submitted ? (
-              <div className="flex flex-col items-center text-center py-10 gap-5">
-                <CheckCircle className="w-14 h-14 text-primary" />
-                <h4 className="text-2xl font-serif text-foreground">Message envoyé</h4>
-                <p className="text-foreground/70 max-w-sm">
-                  Merci pour votre message. Je vous répondrai dans les plus brefs délais. À très bientôt.
-                </p>
+          {isBookingModalOpen ? (
+            <div
+              role="presentation"
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/40 px-4 py-6 backdrop-blur-sm"
+              onClick={onCloseBookingModal}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="contact-modal-title"
+                className="relative max-h-[calc(100dvh-3rem)] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-border/50 bg-card p-6 shadow-xl md:p-12"
+                onClick={(event) => event.stopPropagation()}
+              >
                 <Button
-                  variant="outline"
-                  className="rounded-full mt-2"
-                  onClick={() => {
-                    setSubmitted(false);
-                    form.reset();
-                  }}
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Fermer la fenêtre de contact"
+                  className="absolute right-4 top-4 rounded-full"
+                  onClick={onCloseBookingModal}
                 >
-                  Envoyer un autre message
+                  <X className="h-5 w-5" />
                 </Button>
-              </div>
-            ) : (
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-6"
+
+                <h4
+                  id="contact-modal-title"
+                  className="mb-8 pr-10 text-2xl font-serif text-foreground"
                 >
-                  <input
-                    type="text"
-                    tabIndex={-1}
-                    autoComplete="off"
-                    className="hidden"
-                    aria-hidden="true"
-                    {...form.register("website")}
-                  />
+                  Réserver une séance
+                </h4>
 
-                  <div className="grid sm:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Prénom et nom</FormLabel>
-                          <FormControl>
-                            <Input
-                              data-testid="input-name"
-                              placeholder="Marie Dupont"
-                              className="rounded-xl"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Adresse e-mail</FormLabel>
-                          <FormControl>
-                            <Input
-                              data-testid="input-email"
-                              type="email"
-                              placeholder="marie@exemple.fr"
-                              className="rounded-xl"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Téléphone (optionnel)</FormLabel>
-                        <FormControl>
-                          <Input
-                            data-testid="input-phone"
-                            type="tel"
-                            placeholder="06 12 34 56 78"
-                            className="rounded-xl"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Message</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            data-testid="input-message"
-                            placeholder="Parlez-moi de vous et de vos besoins..."
-                            className="rounded-xl min-h-[140px] resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {submitError ? (
-                    <p
-                      role="alert"
-                      className="text-sm font-medium text-destructive"
-                    >
-                      {submitError}
+                {submitted ? (
+                  <div className="flex flex-col items-center text-center py-10 gap-5">
+                    <CheckCircle className="w-14 h-14 text-primary" />
+                    <h5 className="text-2xl font-serif text-foreground">Message envoyé</h5>
+                    <p className="text-foreground/70 max-w-sm">
+                      Merci pour votre message. Je vous répondrai dans les plus brefs délais. À très bientôt.
                     </p>
-                  ) : null}
+                    <Button
+                      variant="outline"
+                      className="rounded-full mt-2"
+                      onClick={() => {
+                        setSubmitted(false);
+                        form.reset();
+                      }}
+                    >
+                      Envoyer un autre message
+                    </Button>
+                  </div>
+                ) : (
+                  <Form {...form}>
+                    <form
+                      onSubmit={form.handleSubmit(onSubmit)}
+                      className="space-y-6"
+                    >
+                      <input
+                        type="text"
+                        tabIndex={-1}
+                        autoComplete="off"
+                        className="hidden"
+                        aria-hidden="true"
+                        {...form.register("website")}
+                      />
 
-                  <Button
-                    data-testid="button-submit"
-                    type="submit"
-                    size="lg"
-                    className="w-full rounded-full text-base py-6"
-                    disabled={form.formState.isSubmitting}
-                  >
-                    {form.formState.isSubmitting ? "Envoi en cours..." : "Envoyer"}
-                  </Button>
-                </form>
-              </Form>
-            )}
-          </motion.div>
+                      <div className="grid sm:grid-cols-2 gap-6">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Prénom et nom</FormLabel>
+                              <FormControl>
+                                <Input
+                                  data-testid="input-name"
+                                  placeholder="Marie Dupont"
+                                  className="rounded-xl"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Adresse e-mail</FormLabel>
+                              <FormControl>
+                                <Input
+                                  data-testid="input-email"
+                                  type="email"
+                                  placeholder="marie@exemple.fr"
+                                  className="rounded-xl"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Téléphone (optionnel)</FormLabel>
+                            <FormControl>
+                              <Input
+                                data-testid="input-phone"
+                                type="tel"
+                                placeholder="06 12 34 56 78"
+                                className="rounded-xl"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="message"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Message</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                data-testid="input-message"
+                                placeholder="Parlez-moi de vous et de vos besoins..."
+                                className="rounded-xl min-h-[140px] resize-none"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {submitError ? (
+                        <p
+                          role="alert"
+                          className="text-sm font-medium text-destructive"
+                        >
+                          {submitError}
+                        </p>
+                      ) : null}
+
+                      <Button
+                        data-testid="button-submit"
+                        type="submit"
+                        size="lg"
+                        className="w-full rounded-full text-base py-6"
+                        disabled={form.formState.isSubmitting}
+                      >
+                        {form.formState.isSubmitting ? "Envoi en cours..." : "Envoyer"}
+                      </Button>
+                    </form>
+                  </Form>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
