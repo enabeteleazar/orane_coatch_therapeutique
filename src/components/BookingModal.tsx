@@ -40,6 +40,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const [openDates, setOpenDates] = useState<Set<string>>(new Set());
   const [selectedSlot, setSelectedSlot] = useState<BookingSlot | null>(null);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
   const [loading, setLoading] = useState(false);
@@ -115,6 +116,13 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       return;
     }
 
+    const trimmedEmail = email.trim();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError("Veuillez indiquer une adresse e-mail valide.");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     setSuccess(null);
@@ -125,6 +133,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
+          email: trimmedEmail,
           phone,
           website,
           start: selectedSlot.start,
@@ -137,8 +146,11 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
         throw new Error(payload?.error || "La réservation n'a pas pu être validée.");
       }
 
-      setSuccess("Votre séance est réservée. Vous serez recontacté si besoin.");
+      setSuccess(
+        "Votre séance est réservée. Une invitation de confirmation vous a été envoyée par e-mail.",
+      );
       setName("");
+      setEmail("");
       setPhone("");
       setWebsite("");
       await loadAvailability();
@@ -217,9 +229,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
             <div className="space-y-6 p-5 md:p-6">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm text-foreground/65">
-                    Calendrier {availability?.calendarName ?? "rdv-coach"}
-                  </p>
+                  <p className="text-sm text-foreground/65">Séances disponibles</p>
                   <p className="text-lg font-semibold text-foreground">
                     {availableSlotsCount} créneau{availableSlotsCount > 1 ? "x" : ""} disponible
                   </p>
@@ -320,7 +330,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
 
               <form
                 onSubmit={handleSubmit}
-                className="grid gap-4 rounded-2xl border border-border/50 bg-background p-4 md:grid-cols-[1fr_1fr_auto] md:items-end"
+                className="grid gap-4 rounded-2xl border border-border/50 bg-background p-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end"
               >
                 <input
                   type="text"
@@ -338,6 +348,19 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Marie Dupont"
+                    required
+                    className="rounded-xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="booking-email">E-mail</Label>
+                  <Input
+                    id="booking-email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="marie@example.com"
+                    required
                     className="rounded-xl"
                   />
                 </div>
@@ -349,6 +372,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                     value={phone}
                     onChange={(event) => setPhone(event.target.value)}
                     placeholder="06 12 34 56 78"
+                    required
                     className="rounded-xl"
                   />
                 </div>

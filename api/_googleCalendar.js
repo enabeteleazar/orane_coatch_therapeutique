@@ -422,24 +422,43 @@ export function findSlot(availability, start, end) {
     .find((slot) => slot.start === start && slot.end === end);
 }
 
-export async function createBooking({ name, phone, start, end }) {
+export async function createBooking({ name, email, phone, message, start, end }) {
   const config = getBookingConfig();
   const calendarId = await getCalendarId();
+  const description = [
+    `Nom: ${name}`,
+    `Email: ${email}`,
+    `Téléphone: ${phone}`,
+    message ? `Message: ${message}` : null,
+    "Origine: réservation site web Coach Thérapeutique",
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  return googleRequest(`/calendars/${encodeURIComponent(calendarId)}/events`, {
-    method: "POST",
-    body: JSON.stringify({
-      summary: `Rendez-vous coaching - ${name}`,
-      description: [`Nom: ${name}`, `Téléphone: ${phone}`].join("\n"),
-      start: {
-        dateTime: start,
-        timeZone: config.timeZone,
-      },
-      end: {
-        dateTime: end,
-        timeZone: config.timeZone,
-      },
-      colorId: "6",
-    }),
-  });
+  return googleRequest(
+    `/calendars/${encodeURIComponent(calendarId)}/events?` +
+      new URLSearchParams({ sendUpdates: "all" }).toString(),
+    {
+      method: "POST",
+      body: JSON.stringify({
+        summary: `Rendez-vous coaching - ${name}`,
+        description,
+        attendees: [
+          {
+            email,
+            displayName: name,
+          },
+        ],
+        start: {
+          dateTime: start,
+          timeZone: config.timeZone,
+        },
+        end: {
+          dateTime: end,
+          timeZone: config.timeZone,
+        },
+        colorId: "6",
+      }),
+    },
+  );
 }

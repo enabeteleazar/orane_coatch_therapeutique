@@ -9,7 +9,9 @@ import {
 
 function validatePayload(payload) {
   const name = sanitize(payload?.name);
+  const email = sanitize(payload?.email).toLowerCase();
   const phone = sanitize(payload?.phone);
+  const message = sanitize(payload?.message);
   const start = sanitize(payload?.start);
   const end = sanitize(payload?.end);
   const website = sanitize(payload?.website);
@@ -22,6 +24,10 @@ function validatePayload(payload) {
     return { error: "Veuillez indiquer votre nom complet." };
   }
 
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Veuillez indiquer une adresse e-mail valide." };
+  }
+
   if (phone.length < 6) {
     return { error: "Veuillez indiquer un numéro de téléphone valide." };
   }
@@ -30,7 +36,7 @@ function validatePayload(payload) {
     return { error: "Veuillez sélectionner un créneau." };
   }
 
-  return { value: { name, phone, start, end } };
+  return { value: { name, email, phone, message, start, end } };
 }
 
 export default async function handler(req, res) {
@@ -53,7 +59,7 @@ export default async function handler(req, res) {
     return json(res, 400, { error: validation.error });
   }
 
-  const { name, phone, start, end } = validation.value;
+  const { name, email, phone, message, start, end } = validation.value;
 
   try {
     const weekStart = start.slice(0, 10);
@@ -66,7 +72,7 @@ export default async function handler(req, res) {
       });
     }
 
-    await createBooking({ name, phone, start, end });
+    await createBooking({ name, email, phone, message, start, end });
 
     return json(res, 200, { success: true });
   } catch (error) {
