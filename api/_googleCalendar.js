@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { getActiveBookingSlots } from "./_bookingSlots.js";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
@@ -6,10 +7,6 @@ const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 
 const DEFAULT_TIME_ZONE = "Europe/Paris";
 const DEFAULT_CALENDAR_NAME = "rdv-coach";
-const DEFAULT_SLOT_MINUTES = 90;
-const DEFAULT_DAY_START = "09:00";
-const DEFAULT_DAY_END = "18:00";
-const DEFAULT_WEEK_DAYS = "1,2,3,4,5";
 
 let cachedAccessToken = null;
 let cachedAccessTokenExpiresAt = 0;
@@ -140,6 +137,14 @@ async function googleRequest(path, options = {}) {
       status: response.status,
       payload,
     });
+    const googleMessage = sanitize(payload?.error?.message);
+
+    if (response.status === 403 && googleMessage.includes("writer access")) {
+      throw new Error(
+        "Le compte de service Google doit avoir le droit de modifier le calendrier.",
+      );
+    }
+
     throw new Error("La requête Google Calendar a échoué.");
   }
 
@@ -150,16 +155,17 @@ export function getBookingConfig() {
   return {
     calendarName: sanitize(process.env.GOOGLE_CALENDAR_NAME) || DEFAULT_CALENDAR_NAME,
     timeZone: sanitize(process.env.BOOKING_TIME_ZONE) || DEFAULT_TIME_ZONE,
-    slotMinutes:
-      Number.parseInt(process.env.BOOKING_SLOT_MINUTES ?? "", 10) ||
-      DEFAULT_SLOT_MINUTES,
-    dayStart: sanitize(process.env.BOOKING_DAY_START) || DEFAULT_DAY_START,
-    dayEnd: sanitize(process.env.BOOKING_DAY_END) || DEFAULT_DAY_END,
-    weekDays: (sanitize(process.env.BOOKING_WEEK_DAYS) || DEFAULT_WEEK_DAYS)
-      .split(",")
-      .map((value) => Number.parseInt(value.trim(), 10))
-      .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6),
   };
+}
+
+export function isGoogleCalendarConfigured() {
+  return Boolean(
+    sanitize(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) &&
+      getPrivateKey() &&
+      (sanitize(process.env.GOOGLE_CALENDAR_ID) ||
+        sanitize(process.env.GOOGLE_CALENDAR_NAME) ||
+        DEFAULT_CALENDAR_NAME),
+  );
 }
 
 export async function getCalendarId() {
@@ -200,7 +206,11 @@ function parseDate(value) {
 }
 
 function toDateKey(date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function addDays(dateKey, days) {
@@ -235,11 +245,6 @@ function getWeekday(dateKey) {
   const parsed = parseDate(dateKey);
   const day = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)).getUTCDay();
   return day === 0 ? 6 : day - 1;
-}
-
-function getCalendarDayNumber(dateKey) {
-  const parsed = parseDate(dateKey);
-  return new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)).getUTCDay();
 }
 
 function getLocalParts(date, timeZone) {
@@ -286,18 +291,6 @@ function zonedTimeToUtc(dateKey, time, timeZone) {
   return new Date(utcGuess.getTime() - offset);
 }
 
-function minutesToTime(totalMinutes) {
-  const hour = Math.floor(totalMinutes / 60);
-  const minute = totalMinutes % 60;
-
-  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
-function timeToMinutes(time) {
-  const [hour, minute] = time.split(":").map(Number);
-  return hour * 60 + minute;
-}
-
 function formatTime(date, timeZone) {
   return new Intl.DateTimeFormat("fr-FR", {
     timeZone,
@@ -309,9 +302,9 @@ function formatTime(date, timeZone) {
 function formatDayLabel(dateKey) {
   const parsed = parseDate(dateKey);
   return new Intl.DateTimeFormat("fr-FR", {
-    weekday: "short",
+    weekday: "long",
     day: "2-digit",
-    month: "short",
+    month: "long",
   }).format(new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day, 12)));
 }
 
@@ -333,13 +326,17 @@ function overlaps(slot, event) {
   return event.start < slot.end && event.end > slot.start;
 }
 
-export async function buildAvailability(weekStartInput) {
-  const config = getBookingConfig();
-  const calendarId = await getCalendarId();
-  const weekStart = getWeekStart(weekStartInput, config.timeZone);
-  const weekEnd = addDays(weekStart, 7);
-  const timeMin = zonedTimeToUtc(weekStart, "00:00", config.timeZone).toISOString();
-  const timeMax = zonedTimeToUtc(weekEnd, "00:00", config.timeZone).toISOString();
+async function fetchGoogleEventsForSlots({ calendarId, slots, timeZone }) {
+  if (slots.length === 0) {
+    return {
+      events: [],
+      eventRanges: [],
+    };
+  }
+
+  const dates = slots.map((slot) => slot.date).sort();
+  const timeMin = zonedTimeToUtc(dates[0], "00:00", timeZone).toISOString();
+  const timeMax = zonedTimeToUtc(addDays(dates.at(-1), 1), "00:00", timeZone).toISOString();
   const eventsPayload = await googleRequest(
     `/calendars/${encodeURIComponent(calendarId)}/events?` +
       new URLSearchParams({
@@ -349,58 +346,72 @@ export async function buildAvailability(weekStartInput) {
         orderBy: "startTime",
       }).toString(),
   );
-  const eventRanges = (eventsPayload.items ?? [])
-    .filter((event) => event.status !== "cancelled")
-    .map(eventRange)
-    .filter(Boolean);
+  const events = (eventsPayload.items ?? []).filter((event) => event.status !== "cancelled");
 
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const date = addDays(weekStart, index);
-    const calendarDay = getCalendarDayNumber(date);
-    const isBookableDay = config.weekDays.includes(calendarDay);
-    const slots = [];
-
-    if (isBookableDay) {
-      const startMinutes = timeToMinutes(config.dayStart);
-      const endMinutes = timeToMinutes(config.dayEnd);
-
-      for (
-        let minutes = startMinutes;
-        minutes + config.slotMinutes <= endMinutes;
-        minutes += config.slotMinutes
-      ) {
-        const start = zonedTimeToUtc(date, minutesToTime(minutes), config.timeZone);
-        const end = zonedTimeToUtc(
-          date,
-          minutesToTime(minutes + config.slotMinutes),
-          config.timeZone,
-        );
-        const slot = { start, end };
-        const reserved = eventRanges.some((event) => overlaps(slot, event));
-
-        slots.push({
-          start: start.toISOString(),
-          end: end.toISOString(),
-          startLabel: formatTime(start, config.timeZone),
-          endLabel: formatTime(end, config.timeZone),
-          status: reserved ? "reserved" : "available",
-        });
-      }
-    }
-
-    return {
-      date,
-      label: formatDayLabel(date),
-      weekdayIndex: getWeekday(date),
-      slots,
-    };
-  });
+  console.info("[calendar] événements Google Calendar lus:", events.length);
 
   return {
+    events,
+    eventRanges: events.map(eventRange).filter(Boolean),
+  };
+}
+
+export async function getGoogleEventsCount() {
+  const config = getBookingConfig();
+  const slots = await getActiveBookingSlots();
+  const calendarId = await getCalendarId();
+  const { events } = await fetchGoogleEventsForSlots({
+    calendarId,
+    slots,
+    timeZone: config.timeZone,
+  });
+
+  return events.length;
+}
+
+export async function buildAvailability() {
+  const config = getBookingConfig();
+  const slots = await getActiveBookingSlots();
+  const calendarId = await getCalendarId();
+  const { eventRanges } = await fetchGoogleEventsForSlots({
+    calendarId,
+    slots,
+    timeZone: config.timeZone,
+  });
+  const days = [];
+  const dayIndexes = new Map();
+
+  for (const databaseSlot of slots) {
+    const start = zonedTimeToUtc(databaseSlot.date, databaseSlot.startTime, config.timeZone);
+    const end = zonedTimeToUtc(databaseSlot.date, databaseSlot.endTime, config.timeZone);
+    const slot = { start, end };
+    const reserved = eventRanges.some((event) => overlaps(slot, event));
+
+    if (!dayIndexes.has(databaseSlot.date)) {
+      dayIndexes.set(databaseSlot.date, days.length);
+      days.push({
+        date: databaseSlot.date,
+        label: formatDayLabel(databaseSlot.date),
+        weekdayIndex: getWeekday(databaseSlot.date),
+        slots: [],
+      });
+    }
+
+    days[dayIndexes.get(databaseSlot.date)].slots.push({
+      id: databaseSlot.id,
+      start: start.toISOString(),
+      end: end.toISOString(),
+      startLabel: formatTime(start, config.timeZone),
+      endLabel: formatTime(end, config.timeZone),
+      status: reserved ? "reserved" : "available",
+    });
+  }
+
+  return {
+    source: "database",
     calendarName: config.calendarName,
     timeZone: config.timeZone,
-    slotMinutes: config.slotMinutes,
-    weekStart,
+    weekStart: getWeekStart(days[0]?.date, config.timeZone),
     days,
   };
 }

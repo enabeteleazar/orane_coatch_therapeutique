@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronRight, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 type BookingSlot = {
+  id: number;
   start: string;
   end: string;
   startLabel: string;
@@ -22,6 +23,7 @@ type BookingDay = {
 };
 
 type AvailabilityResponse = {
+  source: "database";
   calendarName: string;
   timeZone: string;
   weekStart: string;
@@ -33,41 +35,9 @@ type BookingModalProps = {
   onClose: () => void;
 };
 
-function toDateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function getMonday(date: Date) {
-  const copy = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const day = copy.getUTCDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  copy.setUTCDate(copy.getUTCDate() + diff);
-
-  return toDateKey(copy);
-}
-
-function addDays(dateKey: string, days: number) {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day + days));
-
-  return toDateKey(date);
-}
-
-function formatWeekRange(weekStart: string) {
-  const [year, month, day] = weekStart.split("-").map(Number);
-  const start = new Date(Date.UTC(year, month - 1, day, 12));
-  const end = new Date(Date.UTC(year, month - 1, day + 6, 12));
-  const formatter = new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-  });
-
-  return `${formatter.format(start)} - ${formatter.format(end)}`;
-}
-
 export function BookingModal({ isOpen, onClose }: BookingModalProps) {
-  const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [availability, setAvailability] = useState<AvailabilityResponse | null>(null);
+  const [openDates, setOpenDates] = useState<Set<string>>(new Set());
   const [selectedSlot, setSelectedSlot] = useState<BookingSlot | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -77,16 +47,22 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const weekRange = useMemo(() => formatWeekRange(weekStart), [weekStart]);
+  const availableSlotsCount = useMemo(
+    () =>
+      (availability?.days ?? []).reduce(
+        (total, day) =>
+          total + day.slots.filter((slot) => slot.status === "available").length,
+        0,
+      ),
+    [availability],
+  );
 
-  async function loadAvailability(targetWeekStart = weekStart) {
+  async function loadAvailability() {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/bookings/availability?weekStart=${encodeURIComponent(targetWeekStart)}`,
-      );
+      const response = await fetch("/api/bookings/availability");
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
@@ -96,6 +72,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       }
 
       setAvailability(payload);
+      setOpenDates(payload?.days?.[0]?.date ? new Set([payload.days[0].date]) : new Set());
       setSelectedSlot(null);
     } catch (requestError) {
       setAvailability(null);
@@ -113,7 +90,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
     if (isOpen) {
       void loadAvailability();
     }
-  }, [isOpen, weekStart]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -176,15 +153,19 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
     }
   }
 
-  const goToPreviousWeek = () => {
-    setSuccess(null);
-    setWeekStart((value) => addDays(value, -7));
-  };
+  function toggleDate(date: string) {
+    setOpenDates((dates) => {
+      const nextDates = new Set(dates);
 
-  const goToNextWeek = () => {
-    setSuccess(null);
-    setWeekStart((value) => addDays(value, 7));
-  };
+      if (nextDates.has(date)) {
+        nextDates.delete(date);
+      } else {
+        nextDates.add(date);
+      }
+
+      return nextDates;
+    });
+  }
 
   return (
     <AnimatePresence>
@@ -236,38 +217,18 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
             <div className="space-y-6 p-5 md:p-6">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm text-foreground/65">Calendrier rdv-coach</p>
-                  <p className="text-lg font-semibold text-foreground">
-                    Semaine du {weekRange}
+                  <p className="text-sm text-foreground/65">
+                    Calendrier {availability?.calendarName ?? "rdv-coach"}
                   </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label="Semaine précédente"
-                    className="rounded-full"
-                    onClick={goToPreviousWeek}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    aria-label="Semaine suivante"
-                    className="rounded-full"
-                    onClick={goToNextWeek}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                  <p className="text-lg font-semibold text-foreground">
+                    {availableSlotsCount} créneau{availableSlotsCount > 1 ? "x" : ""} disponible
+                  </p>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-3 text-sm text-foreground/70">
                 <span className="inline-flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                  <span className="h-3 w-3 rounded-full bg-blue-500" />
                   Disponible
                 </span>
                 <span className="inline-flex items-center gap-2">
@@ -293,53 +254,67 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="grid gap-3 md:grid-cols-7">
+                <div className="space-y-3">
                   {(availability?.days ?? []).map((day) => (
                     <div
                       key={day.date}
-                      className="rounded-2xl border border-border/50 bg-background p-3"
+                      className="overflow-hidden rounded-xl border border-border/50 bg-background"
                     >
-                      <div className="mb-3 border-b border-border/40 pb-2">
-                        <p className="font-serif text-base font-medium text-foreground">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                        onClick={() => toggleDate(day.date)}
+                        aria-expanded={openDates.has(day.date)}
+                      >
+                        <span className="font-serif text-base font-medium text-foreground">
                           {day.label}
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        {day.slots.length > 0 ? (
-                          day.slots.map((slot) => {
-                            const isSelected = selectedSlot?.start === slot.start;
-                            const isAvailable = slot.status === "available";
+                        </span>
+                        <span className="flex items-center gap-3 text-sm text-muted-foreground">
+                          {day.slots.length} horaire{day.slots.length > 1 ? "s" : ""}
+                          {openDates.has(day.date) ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </span>
+                      </button>
+                      {openDates.has(day.date) ? (
+                        <div className="grid gap-2 border-t border-border/40 p-3 sm:grid-cols-2 md:grid-cols-4">
+                          {day.slots.map((slot) => {
+                              const isSelected = selectedSlot?.start === slot.start;
+                              const isAvailable = slot.status === "available";
 
-                            return (
-                              <button
-                                key={slot.start}
-                                type="button"
-                                disabled={!isAvailable}
-                                onClick={() => {
-                                  setSelectedSlot(slot);
-                                  setSuccess(null);
-                                  setError(null);
-                                }}
-                                className={cn(
-                                  "w-full rounded-xl border px-2 py-3 text-left text-sm font-medium transition-all",
-                                  isAvailable
-                                    ? "border-emerald-200 bg-emerald-50 text-emerald-900 hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-sm"
-                                    : "cursor-not-allowed border-orange-200 bg-orange-50 text-orange-800 opacity-85",
-                                  isSelected && "ring-2 ring-emerald-500",
-                                )}
-                              >
-                                {slot.startLabel} - {slot.endLabel}
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <p className="rounded-xl bg-muted/50 px-3 py-4 text-center text-sm text-foreground/50">
-                            Aucun créneau
-                          </p>
-                        )}
-                      </div>
+                              return (
+                                <button
+                                  key={slot.id}
+                                  type="button"
+                                  disabled={!isAvailable}
+                                  onClick={() => {
+                                    setSelectedSlot(slot);
+                                    setSuccess(null);
+                                    setError(null);
+                                  }}
+                                  className={cn(
+                                    "min-h-12 rounded-lg border px-3 py-2 text-center text-sm font-semibold transition-all",
+                                    isAvailable
+                                      ? "border-blue-200 bg-blue-50 text-blue-950 hover:-translate-y-0.5 hover:border-blue-500 hover:shadow-sm"
+                                      : "cursor-not-allowed border-orange-200 bg-orange-50 text-orange-900 opacity-85",
+                                    isSelected && "ring-2 ring-blue-500",
+                                  )}
+                                >
+                                  {slot.startLabel} - {slot.endLabel}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      ) : null}
                     </div>
                   ))}
+                  {(availability?.days ?? []).length === 0 ? (
+                    <p className="rounded-xl bg-muted/50 px-4 py-8 text-center text-sm text-foreground/60">
+                      Aucun créneau disponible.
+                    </p>
+                  ) : null}
                 </div>
               )}
 
