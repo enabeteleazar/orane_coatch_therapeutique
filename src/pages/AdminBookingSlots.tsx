@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { CalendarPlus, Check, Pencil, Power, RefreshCw, Save, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarPlus, Check, Pencil, Power, RefreshCw, Save, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,13 +28,23 @@ const emptyForm: SlotForm = {
   enabled: true,
 };
 
+type AdminBookingSlotsProps = {
+  onBackToMenu?: () => void;
+  adminPassword?: string;
+  onLogout?: () => void;
+};
+
 function getStoredPassword() {
   return window.sessionStorage.getItem("coach_admin_password") ?? "";
 }
 
-export default function AdminBookingSlots() {
-  const [password, setPassword] = useState(getStoredPassword);
-  const [authenticated, setAuthenticated] = useState(Boolean(getStoredPassword()));
+export default function AdminBookingSlots({
+  onBackToMenu,
+  adminPassword,
+  onLogout,
+}: AdminBookingSlotsProps) {
+  const [password, setPassword] = useState(() => adminPassword ?? getStoredPassword());
+  const [authenticated, setAuthenticated] = useState(Boolean(adminPassword ?? getStoredPassword()));
   const [slots, setSlots] = useState<AdminSlot[]>([]);
   const [newSlot, setNewSlot] = useState<SlotForm>(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -43,13 +53,14 @@ export default function AdminBookingSlots() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const requestPassword = adminPassword ?? password;
 
   async function adminFetch(path: string, init: RequestInit = {}) {
     const response = await fetch(path, {
       ...init,
       headers: {
         "Content-Type": "application/json",
-        "x-admin-password": password,
+        "x-admin-password": requestPassword,
         ...(init.headers ?? {}),
       },
     });
@@ -70,11 +81,12 @@ export default function AdminBookingSlots() {
       const payload = await adminFetch("/api/admin/booking-slots");
       setSlots(payload.slots ?? []);
       setAuthenticated(true);
-      window.sessionStorage.setItem("coach_admin_password", password);
+      window.sessionStorage.setItem("coach_admin_password", requestPassword);
     } catch (requestError) {
       setSlots([]);
       setAuthenticated(false);
       window.sessionStorage.removeItem("coach_admin_password");
+      onLogout?.();
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -86,7 +98,7 @@ export default function AdminBookingSlots() {
   }
 
   useEffect(() => {
-    if (authenticated && password) {
+    if (authenticated && requestPassword) {
       void loadSlots();
     }
   }, []);
@@ -177,6 +189,13 @@ export default function AdminBookingSlots() {
     setMessage(null);
   }
 
+  function handleLogout() {
+    window.sessionStorage.removeItem("coach_admin_password");
+    setAuthenticated(false);
+    setPassword("");
+    onLogout?.();
+  }
+
   if (!authenticated) {
     return (
       <main className="min-h-dvh bg-background px-4 py-10 text-foreground">
@@ -188,6 +207,12 @@ export default function AdminBookingSlots() {
             <h1 className="text-2xl">Administration</h1>
             <p className="mt-1 text-sm text-muted-foreground">Gestion des créneaux</p>
           </div>
+          {onBackToMenu ? (
+            <Button type="button" variant="outline" onClick={onBackToMenu}>
+              <ArrowLeft className="h-4 w-4" />
+              Menu
+            </Button>
+          ) : null}
           {error ? (
             <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}
@@ -221,6 +246,12 @@ export default function AdminBookingSlots() {
             <h1 className="text-3xl">Créneaux de réservation</h1>
           </div>
           <div className="flex flex-wrap gap-2">
+            {onBackToMenu ? (
+              <Button type="button" variant="outline" onClick={onBackToMenu}>
+                <ArrowLeft className="h-4 w-4" />
+                Menu
+              </Button>
+            ) : null}
             <Button type="button" variant="outline" onClick={loadSlots} disabled={loading}>
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
               Actualiser
@@ -229,9 +260,7 @@ export default function AdminBookingSlots() {
               type="button"
               variant="ghost"
               onClick={() => {
-                window.sessionStorage.removeItem("coach_admin_password");
-                setAuthenticated(false);
-                setPassword("");
+                handleLogout();
               }}
             >
               <X className="h-4 w-4" />

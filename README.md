@@ -36,6 +36,8 @@ ADMIN_PASSWORD=...
 
 Optionnel : définir `GOOGLE_CALENDAR_ID` pour cibler directement un calendrier sans recherche par nom.
 
-La page `/admin/creneaux` permet de créer, modifier, activer/désactiver et
-supprimer les créneaux Postgres. Les routes admin attendent le mot de passe en
+La page `/dashboard` affiche le menu principal et garde la même URL pour la
+gestion des créneaux et des formules de la table `pricing_plans`. Les routes
+admin, dont la vérification d'accès au dashboard, attendent le mot de passe en
 en-tête `x-admin-password`.
+La section publique Tarifs lit les formules actives depuis `/api/pricing-plans`.
