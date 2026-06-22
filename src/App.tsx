@@ -1,9 +1,11 @@
 import Home from "@/pages/Home";
-import AdminBookingSlots from "@/pages/AdminBookingSlots";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 function App() {
-  if (window.location.pathname === "/admin/creneaux") {
-    return <AdminBookingSlots />;
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+
+  if (pathname === "/dashboard" || pathname.startsWith("/admin")) {
+    return <AdminDashboard />;
   }
 
   return <Home />;
