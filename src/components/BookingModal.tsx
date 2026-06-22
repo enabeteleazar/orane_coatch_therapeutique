@@ -218,7 +218,6 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-sm text-foreground/65">
-                    Calendrier {availability?.calendarName ?? "rdv-coach"}
                   </p>
                   <p className="text-lg font-semibold text-foreground">
                     {availableSlotsCount} créneau{availableSlotsCount > 1 ? "x" : ""} disponible
