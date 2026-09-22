@@ -46,10 +46,6 @@ export function Contact({ onOpenBookingModal }: ContactProps) {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
-  const whatsappUrl = WHATSAPP_PHONE_NUMBER
-    ? `https://wa.me/${WHATSAPP_PHONE_NUMBER}`
-    : "#";
-
   function handleWhatsappClick() {
     if (!WHATSAPP_PHONE_NUMBER) {
       setWhatsappError("Le numéro WhatsApp n'est pas configuré.");
@@ -57,7 +53,7 @@ export function Contact({ onOpenBookingModal }: ContactProps) {
     }
 
     setWhatsappError(null);
-    window.location.href = "https://api.whatsapp.com/send/?phone=33684935004&text&type=phone_number&app_absent=0";
+    window.location.href = `https://api.whatsapp.com/send/?phone=${WHATSAPP_PHONE_NUMBER}&text&type=phone_number&app_absent=0`;
   }
 
   const form = useForm<ContactValues>({
