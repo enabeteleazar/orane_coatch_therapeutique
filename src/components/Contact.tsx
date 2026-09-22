@@ -57,7 +57,7 @@ export function Contact({ onOpenBookingModal }: ContactProps) {
     }
 
     setWhatsappError(null);
-    window.location.href = whatsappUrl;
+    window.location.href = "https://api.whatsapp.com/send/?phone=33684935004&text&type=phone_number&app_absent=0";
   }
 
   const form = useForm<ContactValues>({
