@@ -30,6 +30,20 @@ function validatePayload(payload) {
     return { error: "Veuillez sélectionner un créneau." };
   }
 
+  const startTime = Date.parse(start);
+  const endTime = Date.parse(end);
+
+  if (Number.isNaN(startTime) || Number.isNaN(endTime) || endTime <= startTime) {
+    return { error: "Le créneau sélectionné est invalide." };
+  }
+
+  if (startTime <= Date.now()) {
+    return {
+      error: "Ce créneau est déjà passé. Choisissez un autre horaire.",
+      statusCode: 409,
+    };
+  }
+
   return { value: { name, phone, start, end } };
 }
 
@@ -50,14 +64,13 @@ export default async function handler(req, res) {
   const validation = validatePayload(payload);
 
   if (validation.error) {
-    return json(res, 400, { error: validation.error });
+    return json(res, validation.statusCode ?? 400, { error: validation.error });
   }
 
   const { name, phone, start, end } = validation.value;
 
   try {
-    const weekStart = start.slice(0, 10);
-    const availability = await buildAvailability(weekStart);
+    const availability = await buildAvailability();
     const slot = findSlot(availability, start, end);
 
     if (!slot || slot.status !== "available") {

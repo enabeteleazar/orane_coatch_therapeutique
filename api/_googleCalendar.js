@@ -358,7 +358,7 @@ async function fetchGoogleEventsForSlots({ calendarId, slots, timeZone }) {
 
 export async function getGoogleEventsCount() {
   const config = getBookingConfig();
-  const slots = await getActiveBookingSlots();
+  const slots = await getUpcomingBookingSlots(config.timeZone);
   const calendarId = await getCalendarId();
   const { events } = await fetchGoogleEventsForSlots({
     calendarId,
@@ -369,9 +369,22 @@ export async function getGoogleEventsCount() {
   return events.length;
 }
 
+export async function getUpcomingBookingSlots(timeZone) {
+  const now = Date.now();
+  const slots = await getActiveBookingSlots();
+
+  return slots
+    .map((slot) => ({
+      ...slot,
+      startAt: zonedTimeToUtc(slot.date, slot.startTime, timeZone),
+      endAt: zonedTimeToUtc(slot.date, slot.endTime, timeZone),
+    }))
+    .filter((slot) => slot.startAt.getTime() > now);
+}
+
 export async function buildAvailability() {
   const config = getBookingConfig();
-  const slots = await getActiveBookingSlots();
+  const slots = await getUpcomingBookingSlots(config.timeZone);
   const calendarId = await getCalendarId();
   const { eventRanges } = await fetchGoogleEventsForSlots({
     calendarId,
@@ -382,8 +395,8 @@ export async function buildAvailability() {
   const dayIndexes = new Map();
 
   for (const databaseSlot of slots) {
-    const start = zonedTimeToUtc(databaseSlot.date, databaseSlot.startTime, config.timeZone);
-    const end = zonedTimeToUtc(databaseSlot.date, databaseSlot.endTime, config.timeZone);
+    const start = databaseSlot.startAt;
+    const end = databaseSlot.endAt;
     const slot = { start, end };
     const reserved = eventRanges.some((event) => overlaps(slot, event));
 
