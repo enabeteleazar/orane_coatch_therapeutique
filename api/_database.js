@@ -43,3 +43,21 @@ export async function checkDatabaseAccess() {
   await queryDatabase("SELECT 1");
   return true;
 }
+
+// Exécute `callback` dans une transaction sur une connexion dédiée.
+// La transaction est validée si le callback réussit, annulée sinon.
+export async function withTransaction(callback) {
+  const client = await getDatabasePool().connect();
+
+  try {
+    await client.query("BEGIN");
+    const result = await callback(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}

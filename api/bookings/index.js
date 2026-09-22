@@ -1,3 +1,4 @@
+import { withTransaction } from "../_database.js";
 import {
   buildAvailability,
   createBooking,
@@ -6,6 +7,16 @@ import {
   parseBody,
   sanitize,
 } from "../_googleCalendar.js";
+
+// Verrou applicatif Postgres partagé par toutes les réservations : deux
+// requêtes simultanées ne peuvent pas vérifier puis créer un rendez-vous en
+// même temps. La seconde attend la fin de la première, puis relit Google
+// Calendar et voit le créneau déjà pris.
+const BOOKING_LOCK_KEY = "equilibre-coaching:booking";
+const BOOKING_LOCK_TIMEOUT = "15s";
+const LOCK_TIMEOUT_ERROR_CODE = "55P03";
+
+class SlotUnavailableError extends Error {}
 
 function validatePayload(payload) {
   const name = sanitize(payload?.name);
@@ -70,19 +81,38 @@ export default async function handler(req, res) {
   const { name, phone, start, end } = validation.value;
 
   try {
-    const availability = await buildAvailability();
-    const slot = findSlot(availability, start, end);
+    await withTransaction(async (client) => {
+      await client.query(`SET LOCAL lock_timeout = '${BOOKING_LOCK_TIMEOUT}'`);
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+        BOOKING_LOCK_KEY,
+      ]);
 
-    if (!slot || slot.status !== "available") {
+      const availability = await buildAvailability({
+        query: (text, params) => client.query(text, params),
+      });
+      const slot = findSlot(availability, start, end);
+
+      if (!slot || slot.status !== "available") {
+        throw new SlotUnavailableError();
+      }
+
+      await createBooking({ name, phone, start, end });
+    });
+
+    return json(res, 200, { success: true });
+  } catch (error) {
+    if (error instanceof SlotUnavailableError) {
       return json(res, 409, {
         error: "Ce créneau n'est plus disponible. Choisissez un autre horaire.",
       });
     }
 
-    await createBooking({ name, phone, start, end });
+    if (error?.code === LOCK_TIMEOUT_ERROR_CODE) {
+      return json(res, 503, {
+        error: "Le service de réservation est occupé. Réessayez dans un instant.",
+      });
+    }
 
-    return json(res, 200, { success: true });
-  } catch (error) {
     console.error("[bookings]", error);
     return json(res, 500, {
       error:

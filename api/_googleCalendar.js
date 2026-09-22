@@ -369,9 +369,9 @@ export async function getGoogleEventsCount() {
   return events.length;
 }
 
-export async function getUpcomingBookingSlots(timeZone) {
+export async function getUpcomingBookingSlots(timeZone, query) {
   const now = Date.now();
-  const slots = await getActiveBookingSlots();
+  const slots = await getActiveBookingSlots(query);
 
   return slots
     .map((slot) => ({
@@ -382,9 +382,9 @@ export async function getUpcomingBookingSlots(timeZone) {
     .filter((slot) => slot.startAt.getTime() > now);
 }
 
-export async function buildAvailability() {
+export async function buildAvailability({ query } = {}) {
   const config = getBookingConfig();
-  const slots = await getUpcomingBookingSlots(config.timeZone);
+  const slots = await getUpcomingBookingSlots(config.timeZone, query);
   const calendarId = await getCalendarId();
   const { eventRanges } = await fetchGoogleEventsForSlots({
     calendarId,
