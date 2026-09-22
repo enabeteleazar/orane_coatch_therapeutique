@@ -49,6 +49,8 @@ Thumbs.db
 .local/
 .vercel
 .env*
+
+# Clés de compte de service Google (ne jamais commiter)
 coach-site-key.json
-coach-site-key.json
-*.json
+coach-500122-814a19f45607.json
+*-key.json
