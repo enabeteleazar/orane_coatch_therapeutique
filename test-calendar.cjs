@@ -6,7 +6,7 @@ const CALENDAR_ID =
 
 async function main() {
   const key = JSON.parse(
-    fs.readFileSync("/srv/git/web/coach/coach-site-key.json", "utf8")
+    fs.readFileSync("/srv/projects/oraneCoatch/coach-site-key.json", "utf8")
   );
 
   const auth = new google.auth.JWT({

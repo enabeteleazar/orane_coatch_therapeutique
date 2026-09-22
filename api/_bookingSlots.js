@@ -8,15 +8,25 @@ const BOOKING_SLOT_COLUMNS = `
   enabled
 `;
 
+const DEFAULT_TIME_ZONE = "Europe/Paris";
+
+// Seuls les créneaux actifs à partir d'aujourd'hui (dans le fuseau du coach)
+// sont proposés. Les créneaux d'aujourd'hui déjà commencés sont filtrés
+// ensuite à la minute près dans buildAvailability().
 const ACTIVE_SLOTS_QUERY = `
   SELECT ${BOOKING_SLOT_COLUMNS}
   FROM booking_slots
   WHERE enabled = true
+    AND slot_date >= (now() AT TIME ZONE $1::text)::date
   ORDER BY slot_date ASC, start_time ASC
 `;
 
 function sanitize(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function getBookingTimeZone() {
+  return sanitize(process.env.BOOKING_TIME_ZONE) || DEFAULT_TIME_ZONE;
 }
 
 function toDateKey(value) {
@@ -123,13 +133,19 @@ function normalizeSlotInput(payload, { partial = false } = {}) {
 }
 
 export async function getActiveBookingSlots() {
-  const { rows } = await queryDatabase(ACTIVE_SLOTS_QUERY);
+  const { rows } = await queryDatabase(ACTIVE_SLOTS_QUERY, [getBookingTimeZone()]);
   return rows.map(mapSlot);
 }
 
 export async function countActiveBookingSlots() {
   const { rows } = await queryDatabase(
-    "SELECT COUNT(*)::int AS count FROM booking_slots WHERE enabled = true",
+    `
+      SELECT COUNT(*)::int AS count
+      FROM booking_slots
+      WHERE enabled = true
+        AND slot_date >= (now() AT TIME ZONE $1::text)::date
+    `,
+    [getBookingTimeZone()],
   );
   return Number(rows[0]?.count ?? 0);
 }
