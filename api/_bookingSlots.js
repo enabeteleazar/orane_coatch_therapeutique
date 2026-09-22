@@ -132,8 +132,10 @@ function normalizeSlotInput(payload, { partial = false } = {}) {
   return { value };
 }
 
-export async function getActiveBookingSlots() {
-  const { rows } = await queryDatabase(ACTIVE_SLOTS_QUERY, [getBookingTimeZone()]);
+// `query` permet d'exécuter la lecture sur une connexion déjà ouverte
+// (par exemple celle qui détient le verrou de réservation).
+export async function getActiveBookingSlots(query = queryDatabase) {
+  const { rows } = await query(ACTIVE_SLOTS_QUERY, [getBookingTimeZone()]);
   return rows.map(mapSlot);
 }
 

@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const availability = await buildAvailability(req.query?.weekStart);
+    const availability = await buildAvailability();
     return json(res, 200, availability);
   } catch (error) {
     console.error("[bookings/availability]", error);
