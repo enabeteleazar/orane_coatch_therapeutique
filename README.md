@@ -52,13 +52,20 @@ La section publique Tarifs lit les formules actives depuis `/api/pricing-plans`.
 ## Anti-robot Cloudflare Turnstile
 
 La réservation est protégée par Cloudflare Turnstile. Créer un widget sur
-https://dash.cloudflare.com (menu Turnstile) avec le domaine du site, puis :
+https://dash.cloudflare.com (menu Turnstile, mode *Managed*) avec les
+hostnames `localhost`, `127.0.0.1` et le(s) domaine(s) de production, puis :
 
 ```env
 VITE_TURNSTILE_SITE_KEY=0x4AAAAAAA...   # clé du site (publique)
 TURNSTILE_SECRET_KEY=0x4AAAAAAA...      # clé secrète (serveur uniquement)
+TURNSTILE_ALLOWED_HOSTNAMES=coach.example.fr,www.coach.example.fr  # optionnel
 ```
+
+Le serveur (`api/_turnstile.js`) applique la vérification canonique
+siteverify : `success === true`, `action === "booking"` et `hostname` dans
+`TURNSTILE_ALLOWED_HOSTNAMES` (à défaut : le domaine qui reçoit la requête).
+Les jetons sont à usage unique. Si Cloudflare est injoignable, la réservation
+est refusée avec une erreur 503.
 
 Sans `TURNSTILE_SECRET_KEY`, la vérification est désactivée côté serveur ;
 sans `VITE_TURNSTILE_SITE_KEY`, le widget n'est pas affiché.
-

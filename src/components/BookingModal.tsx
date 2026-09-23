@@ -376,6 +376,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                   <div className="md:order-last md:col-span-3">
                     <TurnstileWidget
                       siteKey={TURNSTILE_SITE_KEY}
+                      action="booking"
                       onToken={setTurnstileToken}
                       resetSignal={turnstileReset}
                     />

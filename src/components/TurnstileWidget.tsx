@@ -42,12 +42,19 @@ function loadTurnstileScript() {
 
 type TurnstileWidgetProps = {
   siteKey: string;
+  // Doit correspondre à l'action attendue par le serveur (api/_turnstile.js).
+  action: string;
   onToken: (token: string | null) => void;
   // Incrémenter cette valeur réinitialise le widget (un jeton ne sert qu'une fois).
   resetSignal: number;
 };
 
-export function TurnstileWidget({ siteKey, onToken, resetSignal }: TurnstileWidgetProps) {
+export function TurnstileWidget({
+  siteKey,
+  action,
+  onToken,
+  resetSignal,
+}: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const onTokenRef = useRef(onToken);
@@ -66,6 +73,7 @@ export function TurnstileWidget({ siteKey, onToken, resetSignal }: TurnstileWidg
 
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
+          action,
           language: "fr",
           size: "flexible",
           callback: (token: string) => onTokenRef.current(token),
@@ -88,7 +96,7 @@ export function TurnstileWidget({ siteKey, onToken, resetSignal }: TurnstileWidg
 
       widgetIdRef.current = null;
     };
-  }, [siteKey]);
+  }, [siteKey, action]);
 
   useEffect(() => {
     if (resetSignal > 0 && widgetIdRef.current && window.turnstile) {
