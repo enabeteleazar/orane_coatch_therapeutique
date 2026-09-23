@@ -1,6 +1,10 @@
 import { getClientIp } from "../_clientIp.js";
 import { withTransaction } from "../_database.js";
-import { verifyTurnstileToken } from "../_turnstile.js";
+import {
+  BOOKING_ACTION,
+  getExpectedHostnames,
+  verifyTurnstileToken,
+} from "../_turnstile.js";
 import {
   buildAvailability,
   createBooking,
@@ -84,7 +88,11 @@ export default async function handler(req, res) {
   const { name, phone, start, end, turnstileToken } = validation.value;
 
   try {
-    const captcha = await verifyTurnstileToken(turnstileToken, getClientIp(req));
+    const captcha = await verifyTurnstileToken(turnstileToken, {
+      remoteIp: getClientIp(req),
+      expectedAction: BOOKING_ACTION,
+      expectedHostnames: getExpectedHostnames(req),
+    });
 
     if (!captcha.success) {
       return json(res, 403, {
