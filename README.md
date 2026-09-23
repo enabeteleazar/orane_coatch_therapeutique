@@ -36,8 +36,29 @@ ADMIN_PASSWORD=...
 
 Optionnel : définir `GOOGLE_CALENDAR_ID` pour cibler directement un calendrier sans recherche par nom.
 
+### Protection du dashboard
+
+Après 5 mots de passe erronés en 15 minutes, l'adresse IP est bloquée
+15 minutes sur toutes les routes admin (réponse 429). Les tentatives sont
+stockées dans la table `admin_login_attempts`, créée automatiquement au
+premier usage.
+
 La page `/dashboard` affiche le menu principal et garde la même URL pour la
 gestion des créneaux et des formules de la table `pricing_plans`. Les routes
 admin, dont la vérification d'accès au dashboard, attendent le mot de passe en
 en-tête `x-admin-password`.
 La section publique Tarifs lit les formules actives depuis `/api/pricing-plans`.
+
+## Anti-robot Cloudflare Turnstile
+
+La réservation est protégée par Cloudflare Turnstile. Créer un widget sur
+https://dash.cloudflare.com (menu Turnstile) avec le domaine du site, puis :
+
+```env
+VITE_TURNSTILE_SITE_KEY=0x4AAAAAAA...   # clé du site (publique)
+TURNSTILE_SECRET_KEY=0x4AAAAAAA...      # clé secrète (serveur uniquement)
+```
+
+Sans `TURNSTILE_SECRET_KEY`, la vérification est désactivée côté serveur ;
+sans `VITE_TURNSTILE_SITE_KEY`, le widget n'est pas affiché.
+

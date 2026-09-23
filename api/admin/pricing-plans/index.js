@@ -1,12 +1,12 @@
-import { requireAdmin } from "../../_adminAuth.js";
+import { requireAdmin, sendAdminError } from "../../_adminAuth.js";
 import { createPricingPlan, getPricingPlans } from "../../_pricingPlans.js";
 import { json, parseBody } from "../../_googleCalendar.js";
 
 export default async function handler(req, res) {
-  const admin = requireAdmin(req);
+  const admin = await requireAdmin(req);
 
   if (!admin.ok) {
-    return json(res, admin.statusCode, { error: admin.error });
+    return sendAdminError(res, admin);
   }
 
   try {

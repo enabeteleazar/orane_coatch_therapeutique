@@ -1,4 +1,11 @@
 import crypto from "node:crypto";
+import {
+  getBlockRemainingSeconds,
+  recordFailure,
+  resetFailures,
+} from "./_adminRateLimit.js";
+import { getClientIp } from "./_clientIp.js";
+import { isDatabaseConfigured } from "./_database.js";
 
 function sanitize(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -47,7 +54,31 @@ function constantTimeEqual(left, right) {
   return crypto.timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-export function requireAdmin(req) {
+function tooManyAttempts(remainingSeconds) {
+  const minutes = Math.max(1, Math.ceil(remainingSeconds / 60));
+
+  return {
+    ok: false,
+    statusCode: 429,
+    retryAfter: remainingSeconds,
+    error: `Trop de tentatives. Réessayez dans ${minutes} minute${minutes > 1 ? "s" : ""}.`,
+  };
+}
+
+// La limitation des tentatives ne doit jamais bloquer l'admin légitime si la
+// base est indisponible : en cas d'erreur, on journalise et on continue.
+async function safely(label, action, fallback) {
+  try {
+    return await action();
+  } catch (error) {
+    console.error(`[admin-auth] ${label}:`, {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return fallback;
+  }
+}
+
+export async function requireAdmin(req) {
   const configuredPassword = getConfiguredPassword();
 
   if (!configuredPassword) {
@@ -58,7 +89,31 @@ export function requireAdmin(req) {
     };
   }
 
+  const ip = getClientIp(req);
+  const rateLimitEnabled = isDatabaseConfigured();
+
+  if (rateLimitEnabled) {
+    const remaining = await safely(
+      "lecture du blocage",
+      () => getBlockRemainingSeconds(ip),
+      0,
+    );
+
+    if (remaining > 0) {
+      return tooManyAttempts(remaining);
+    }
+  }
+
   if (!constantTimeEqual(getRequestPassword(req), configuredPassword)) {
+    if (rateLimitEnabled) {
+      const result = await safely("enregistrement de l'échec", () => recordFailure(ip), null);
+
+      if (result?.blockedSeconds > 0) {
+        console.warn("[admin-auth] IP bloquée après trop d'échecs:", ip);
+        return tooManyAttempts(result.blockedSeconds);
+      }
+    }
+
     return {
       ok: false,
       statusCode: 401,
@@ -66,5 +121,18 @@ export function requireAdmin(req) {
     };
   }
 
+  if (rateLimitEnabled) {
+    await safely("réinitialisation des échecs", () => resetFailures(ip), null);
+  }
+
   return { ok: true };
+}
+
+// Réponse d'erreur standard pour les routes admin.
+export function sendAdminError(res, admin) {
+  if (admin.retryAfter) {
+    res.setHeader("Retry-After", String(admin.retryAfter));
+  }
+
+  res.status(admin.statusCode).json({ error: admin.error });
 }
