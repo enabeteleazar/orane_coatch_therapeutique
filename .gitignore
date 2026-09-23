@@ -54,3 +54,5 @@ Thumbs.db
 coach-site-key.json
 coach-500122-814a19f45607.json
 *-key.json
+coach-*.json
+*.patch
