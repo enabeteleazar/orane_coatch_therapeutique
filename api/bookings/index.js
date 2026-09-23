@@ -1,4 +1,6 @@
+import { getClientIp } from "../_clientIp.js";
 import { withTransaction } from "../_database.js";
+import { verifyTurnstileToken } from "../_turnstile.js";
 import {
   buildAvailability,
   createBooking,
@@ -24,6 +26,7 @@ function validatePayload(payload) {
   const start = sanitize(payload?.start);
   const end = sanitize(payload?.end);
   const website = sanitize(payload?.website);
+  const turnstileToken = sanitize(payload?.turnstileToken);
 
   if (website) {
     return { error: "La réservation n'a pas pu être validée." };
@@ -55,7 +58,7 @@ function validatePayload(payload) {
     };
   }
 
-  return { value: { name, phone, start, end } };
+  return { value: { name, phone, start, end, turnstileToken } };
 }
 
 export default async function handler(req, res) {
@@ -78,7 +81,22 @@ export default async function handler(req, res) {
     return json(res, validation.statusCode ?? 400, { error: validation.error });
   }
 
-  const { name, phone, start, end } = validation.value;
+  const { name, phone, start, end, turnstileToken } = validation.value;
+
+  try {
+    const captcha = await verifyTurnstileToken(turnstileToken, getClientIp(req));
+
+    if (!captcha.success) {
+      return json(res, 403, {
+        error: "La vérification anti-robot a échoué. Rechargez la page et réessayez.",
+      });
+    }
+  } catch (error) {
+    console.error("[bookings] Turnstile injoignable:", error);
+    return json(res, 503, {
+      error: "La vérification anti-robot est indisponible. Réessayez dans un instant.",
+    });
+  }
 
   try {
     await withTransaction(async (client) => {

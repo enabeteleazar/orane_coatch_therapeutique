@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as
+  | string
+  | undefined;
 
 type BookingSlot = {
   id: number;
@@ -42,6 +47,8 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +136,7 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
           website,
           start: selectedSlot.start,
           end: selectedSlot.end,
+          turnstileToken,
         }),
       });
       const payload = await response.json().catch(() => null);
@@ -150,6 +158,8 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
       );
     } finally {
       setSubmitting(false);
+      // Le jeton Turnstile est à usage unique : on en redemande un.
+      setTurnstileReset((value) => value + 1);
     }
   }
 
@@ -353,11 +363,24 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                 </div>
                 <Button
                   type="submit"
-                  className="rounded-full px-6"
-                  disabled={!selectedSlot || submitting}
+                  className="order-last rounded-full px-6 md:order-none"
+                  disabled={
+                    !selectedSlot ||
+                    submitting ||
+                    (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)
+                  }
                 >
                   {submitting ? "Validation..." : "Valider"}
                 </Button>
+                {TURNSTILE_SITE_KEY ? (
+                  <div className="md:order-last md:col-span-3">
+                    <TurnstileWidget
+                      siteKey={TURNSTILE_SITE_KEY}
+                      onToken={setTurnstileToken}
+                      resetSignal={turnstileReset}
+                    />
+                  </div>
+                ) : null}
               </form>
             </div>
           </motion.div>
